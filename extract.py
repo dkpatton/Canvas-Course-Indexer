@@ -2,15 +2,32 @@
 import requests
 import datetime
 import pandas as pd
+import os
+import json
 from time import sleep
 
 # Setup variables
-canvas_address = input("Canvas Address: ")
-canvas_token = input("Canvas Token: ")
 course_id = input("Course ID: ")
 auth = {"Authorization": "Bearer " + canvas_token}  # authentication header for Canvas API requests
 GLOBAL_THROTTLE_COUNT = 0  # counter for throttling
 
+setup_folders = ['config', 'data', 'logs']
+for folder in setup_folders:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+if not os.path.exists("config/config.json"):
+    config = {
+        "canvas_address": input("Canvas Address: "),
+        "canvas_token": input("Canvas Token: ")
+    }
+    with open("config/config.json", "w") as config_file:
+        json.dump(config, config_file, indent=4)
+else:
+    with open("config/config.json", "r") as config_file:
+        config = json.load(config_file)
+        canvas_address = config["canvas_address"]
+        canvas_token = config["canvas_token"]
 
 # Functions
 def rest_request(end_point, params={}):
