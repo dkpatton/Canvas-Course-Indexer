@@ -46,7 +46,7 @@ def rest_request(end_point, params={}):
                 return pages     
     except requests.exceptions.ConnectionError:  # if there is a connection error, allow to retry
         pass
-    # !!! NOTE: This function poorly handles connection errors and other exceptions. !!!
+    # !!! NOTE: This function poorly handles any non-successful HTTP status. !!!
 
 
 def throttle():  # throttle requests to avoid throttling by Canvas
@@ -88,39 +88,7 @@ def log(error, panic=False):  # log error and exit
         else:
             log.write(error)
 
-
-def get_folder_name(folder_id, folders):
-    """
-    Returns the name of a folder.
-    """
-    for course_folder in folders:
-        if course_folder["id"] == folder_id:
-            return course_folder["name"]
-    return None
-
-
-def get_parent_folder_id(folder_id, folders):
-    """
-    Returns the id of the parent folder of a folder.
-    """
-    for course_folder in folders:
-        if course_folder["id"] == folder_id:
-            return course_folder["parent_folder_id"]
-    return None
-
-
-def get_full_path(folder_id, folders):
-    """
-    Returns the full path of a folder.
-    """
-    path = []
-    parent_folder_id = get_parent_folder_id(folder_id, folders)
-    while parent_folder_id is not None:
-        path.append(get_folder_name(parent_folder_id, folders))
-        parent_folder_id = get_parent_folder_id(parent_folder_id, folders)
-    path.reverse()
-    return "/".join(path)
-
+# Create a backoff policy for throttling. Using (1, 10) as arguments results in 17m3s of total wait time, if throttled again the script will terminate.
 backoff_policy = exponential_backoff(1, 10)
 
 # Get all files in course
@@ -134,8 +102,6 @@ course_files_df.to_json("data/course_files.json", indent=4)
 course_folders_endpoint = "/api/v1/courses/:course_id/folders"
 course_folders_url = canvas_address + course_folders_endpoint.replace(":course_id", course_id)
 course_folders = rest_request(course_folders_endpoint.replace(":course_id", course_id))
-for folder in course_folders:
-    folder["full_path"] = get_full_path(folder["id"], course_folders)
 course_folders_df = pd.DataFrame(course_folders).transpose()
 course_folders_df.to_json("data/course_folders.json", indent=4)
 
