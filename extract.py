@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
-import requests
+""" Extracts files, pages, and folders from a Canvas course. A search is 
+    run on page contents to make an index of pages that contain a search 
+    term. All files are saved as JSON and can be imported into an Power-
+    Query tools like PowerBI or PowerQuery for Excel.
+"""
 import datetime
-import pandas as pd
 import os
 import json
 from time import sleep
+import requests
+import pandas as pd
 
-# Setup variables
-course_id = input("Course ID: ")
-auth = {"Authorization": "Bearer " + canvas_token}  # authentication header for Canvas API requests
-GLOBAL_THROTTLE_COUNT = 0  # counter for throttling
-
+# Setup Variables
 setup_folders = ['config', 'data', 'logs']
 for folder in setup_folders:
     if not os.path.exists(folder):
@@ -21,33 +22,46 @@ if not os.path.exists("config/config.json"):
         "canvas_address": input("Canvas Address: "),
         "canvas_token": input("Canvas Token: ")
     }
-    with open("config/config.json", "w") as config_file:
+    if config["canvas_address"][-1] == "/":
+        config["canvas_address"] = config["canvas_address"][:-1]
+    with open("config/config.json", "w", encoding="utf-8") as config_file:
         json.dump(config, config_file, indent=4)
 else:
-    with open("config/config.json", "r") as config_file:
+    with open("config/config.json", "r", encoding="utf-8") as config_file:
         config = json.load(config_file)
-        canvas_address = config["canvas_address"]
-        canvas_token = config["canvas_token"]
+    canvas_address = config["canvas_address"]
+    canvas_token = config["canvas_token"]
+course_id = input("Course ID: ")
+auth = {"Authorization": "Bearer " + canvas_token}  # authentication header for Canvas API requests
+GLOBAL_THROTTLE_COUNT = 0  # counter for throttling
 
 # Functions
-def rest_request(end_point, params={}):
+def rest_request(end_point, params=None):
     """
-    Returns a list of pages of data from a REST API request. Throttling, pagination, and error handling are managed by this function.
+    Returns a list of pages of data from a REST API request. Throttling, pagination, 
+    and error handling are managed by this function.
     """
     more_pages = False  # flag for whether there are more pages of data to request
     url = canvas_address + end_point  # build the url
     query_list = []  # list of query parameters
     pages = []
-    for param in params:  # build the query parameters. Creates url query string like ?param1=value1&param2=value2
-        for value in params[param]:  # if there are multiple values for a parameter, add each one to the query string
-            query_list.append("{p}={v}".format(p=param, v=str(value)))  # add the parameter and value to the query string 
+    if params is None:
+        params = {}
+    # Creates url query string like ?param1=value1&param2=value2
+    for param in params:
+        # if there are multiple values for a parameter, add each one to the query str
+        for value in params[param]:  
+            # add the parameter and value to the query string 
+            query_list.append("{p}={v}".format(p=param, v=str(value)))
     if params != {}:  # if there are query parameters, add them to the url
         url += "?" + "&".join(query_list)  # add the query parameters to the url
     try:  # try to make the request
         request = requests.get(url, headers=auth, timeout=60)  # make the request
         print(url)
         print(request.status_code)
-        if  float(request.headers["X-Rate-Limit-Remaining"]) < 700.0:  # if the request is throttled, increment the throttle counter. See https:#canvas.instructure.com/doc/api/file.throttling.html
+        # if the request is throttled, increment the throttle counter.
+        # See https://canvas.instructure.com/doc/api/file.throttling.html
+        if  float(request.headers["X-Rate-Limit-Remaining"]) < 700.0:
             throttle()  # throttle the request
         if "next" not in request.links.keys():  # if there are no more pages of data, return the data
             return request.json()  # return the data
@@ -71,8 +85,10 @@ def throttle():  # throttle requests to avoid throttling by Canvas
     Throttles requests to avoid throttling by Canvas. See https:#canvas.instructure.com/doc/api/file.throttling.html
     """
     global GLOBAL_THROTTLE_COUNT
-    if GLOBAL_THROTTLE_COUNT == len(backoff_policy):  # if the script has been throttled too many times, pause the script
-        log("This is the {n}th time the script has been throttled. The script will now exit.".format(n=GLOBAL_THROTTLE_COUNT), True)
+    # if the script has been throttled too many times, pause the script
+    if GLOBAL_THROTTLE_COUNT == len(backoff_policy):  
+        mesg = "This is the {n}th time the script has been throttled. The script will now exit."
+        log(mesg.format(n=GLOBAL_THROTTLE_COUNT), True)
     secs = backoff_policy[GLOBAL_THROTTLE_COUNT]
     GLOBAL_THROTTLE_COUNT += 1
     log("Thread is throttled. Sleeping for {s} seconds.".format(s=secs))  # print the number of seconds the thread.
@@ -98,12 +114,12 @@ def exponential_backoff(base, max_attempts):
 def log(error, panic=False):  # log error and exit
     print("Error: {e}".format(e=error))
     file_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "-{microsec}.log".format(microsec=str(datetime.datetime.now().microsecond))
-    with open("logs\\" + file_name, "w") as log:
+    with open("logs\\" + file_name, "w", encoding="utf-8") as logfile:
         if panic:
-            log.write(error + "\n\nThe script has encountered an error and will now exit.")
+            logfile.write(error + "\n\nThe script has encountered an error and will now exit.")
             exit(1)
         else:
-            log.write(error)
+            logfile.write(error)
 
 # Create a backoff policy for throttling. Using (1, 10) as arguments results in 17m3s of total wait time, if throttled again the script will terminate.
 backoff_policy = exponential_backoff(1, 10)
@@ -145,4 +161,3 @@ for page in course_pages:
             page_search_results[str(page["page_id"])+"-"+str(file["id"])] = [page["page_id"], file["id"]]
 page_search_results_df = pd.DataFrame.from_dict(page_search_results, orient="index", columns=["page_id", "file_id"])
 page_search_results_df.to_json("data/page_search_results.json", indent=4)
-
