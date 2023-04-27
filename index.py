@@ -24,15 +24,14 @@ params = {"enrollment_type[]": ["student"],
           "ends_before": [(datetime.datetime.now() + datetime.timedelta(60)).isoformat()]}
 courses = handler(EPSTR.format(account_id=1), params)
 
-courses_to_index = [courses.keys()]
-
 index = {}
-for course in courses_to_index:
+for course in courses:
     # Get a list of all pages and store in index
-    index[course["id"]] = {}
+    course = course["id"]
+    index[course] = {}
     EPSTR = "/api/v1/courses/{course_id}/pages"
     pages = handler(EPSTR.format(course_id=course["id"]), {"sort": ["updated_at"], "order": ["desc"]})
-    index[course["id"]]["pages"] = pages
+    index[course]["pages"] = pages
 
     # Get all page contents and store in index
     for page in pages:
