@@ -29,10 +29,10 @@ courses_to_index = [courses.keys()]
 index = {}
 for course in courses_to_index:
     # Get a list of all pages and store in index
-    index[course] = {}
+    index[course["id"]] = {}
     EPSTR = "/api/v1/courses/{course_id}/pages"
-    pages = handler(EPSTR.format(course_id=course), {"sort": ["updated_at"], "order": ["desc"]})
-    index[course]["pages"] = pages
+    pages = handler(EPSTR.format(course_id=course["id"]), {"sort": ["updated_at"], "order": ["desc"]})
+    index[course["id"]]["pages"] = pages
 
     # Get all page contents and store in index
     for page in pages:
