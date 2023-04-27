@@ -15,11 +15,11 @@ main_account = 1
 subaccount_ids = "1,2,3"
 
 # List active courses in an account
-EPSTR = "/api/v1/accounts/{main_account}/courses".format(main_account=1)
+EPSTR = "/api/v1/accounts/{main_account}/courses".format(main_account=main_account)
 params = {"enrollment_type[]": ["student"],
           "with_enrollments": [True],
           "published": [True],
-          "by_subaccounts": ["{subaccount_ids}".format(subaccount_ids="1,2,3")],
+          "by_subaccounts": ["{subaccount_ids}".format(subaccount_ids=subaccount_ids)],
           "starts_before": [(datetime.datetime.now() - datetime.timedelta(days=420)).isoformat()],
           "ends_before": [(datetime.datetime.now() + datetime.timedelta(60)).isoformat()]}
 courses = handler(EPSTR.format(account_id=1), params)
