@@ -1,6 +1,7 @@
 """ This module contains classes for the Canvas Data API. """
 import os
 from time import sleep
+import datetime
 import requests
 import json
 
@@ -34,6 +35,12 @@ class GetData:
         for attempt in range(1, self.max_attempts + 1):
             self.backoff_policy.append(1 * 2 ** (attempt - 1))
 
+
+    def change_params(self, params):
+        """
+        Changes the parameters for the request
+        """
+        self.params = params
 
 
     def fetch(self):
@@ -90,3 +97,45 @@ class GetData:
         self.throttle_count += 1
         sleep(secs)
         return 1
+
+
+    # Static Methods
+    def get_terms(self, n=1):
+        """ Returns the canvas term ids based on the last N term codes. """
+        previous = {"01": "10", "03": "01", "08": "03", "10": "08"}
+        current_year = datetime.datetime.now().year
+        year = current_year
+
+        if datetime.datetime.now().month < 4:
+            quarter = "01"
+        elif datetime.datetime.now().month < 7:
+            quarter = "03"
+        elif datetime.datetime.now().month < 10:
+            quarter = "08"
+        else:
+            quarter = "10"
+        
+        term_codes = ["{y}{q}".format(y=year, q=quarter)]
+        for i in range(n):
+            quarter = previous[quarter]
+            if quarter == "10":
+                year -= 1
+            term_codes.append("{y}{q}".format(y=year, q=quarter))
+
+        # q is a GraphQL query to get the term ID from the term code. See https://canvas.instructure.com/doc/api/graphql.html
+        query = """ query TermID {
+                        term(sisId: "{sis_id}") {
+                            name
+                            sisTermId
+                            _id
+                        }
+                    }"""
+        enrollment_term_ids = []
+        for term_code in term_codes:
+            term_req = requests.post(self.base_url + "/api/graphql", # send the query 
+                                     headers=self.auth,
+                                     params={"query": query.replace("{sis_id}", str(term_code))},
+                                     data={},
+                                     timeout=60)
+            enrollment_term_ids.append(term_req.json()["data"]["term"]["_id"])  # add the term ID to the list of term IDs
+        return enrollment_term_ids
