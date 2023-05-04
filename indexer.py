@@ -137,7 +137,7 @@ for course in courses:
         index.append([course_id, file_id, file_name, file_url, file_type, file_content, file_created_at, file_updated_at, file_available, file_links])
 
 # Make all values in index valid for CSV
-legal_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%<>{}|\\^\"`"
+legal_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%<>{}|\\^\"` "
 for row in index:
     for i, value in enumerate(row):
         if isinstance(value, str):
