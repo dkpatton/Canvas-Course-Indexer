@@ -122,7 +122,7 @@ for course in courses:
         for page in extract[course_id]["pages"]:
             page_id = page
             if not isinstance(extract[course_id]["pages"][page]["content"]["body"], type(None)) and extract[course_id]["pages"][page]["content"]["body"].find(text_to_find) != -1:
-                file["linked_page_id"].append(page_id)
+                file["linked_page_id"].append("id_" + str(page_id))
     for file in files:
         file_id = file["id"]
         file_name = file["display_name"]
@@ -146,11 +146,11 @@ for row in index:
             row[i] = str(value)
 
 # Write index to file
-with open("data/index.csv", "w") as f:
-    writer = csv.writer(f, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL)
+with open("data/index.csv", "w", encoding="utf-8") as f:
+    writer = csv.writer(f, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL, newline='')
     writer.writerows(index)
 
 # Write extract to JSON file for later use (may be large)
-with open("data/extract.json", "w") as f:
+with open("data/extract.json", "w", encoding="utf-8") as f:
     json.dump(extract, f, indent=4, sort_keys=True)
 
