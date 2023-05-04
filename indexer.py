@@ -136,6 +136,15 @@ for course in courses:
         file_links = ",".join(file["linked_page_id"])
         index.append([course_id, file_id, file_name, file_url, file_type, file_content, file_created_at, file_updated_at, file_available, file_links])
 
+# Make all values in index valid for CSV
+legal_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%<>{}|\\^\"`"
+for row in index:
+    for i, value in enumerate(row):
+        if isinstance(value, str):
+            row[i] = "".join(c for c in value if c in legal_chars)
+        else:
+            row[i] = str(value)
+
 # Write index to file
 with open("data/index.csv", "w") as f:
     writer = csv.writer(f, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL)
