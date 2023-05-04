@@ -25,6 +25,7 @@ COURSE_NAME_FILTER_EXCLUDE = [" 299", " 45"]  # Exclude courses with the name fi
 
 # List active courses in an account
 courses = []
+course_names = {}
 api_endpoint = "/api/v1/accounts/{main_account}/courses".format(main_account=MAIN_SUBACCT)
 courses_unhandled = gcd(api_endpoint, THROTTLE_COUNTER)  # Not using hanlder to reuse the same object
 for term in courses_unhandled.get_terms(TOPN):
@@ -42,6 +43,7 @@ for term in courses_unhandled.get_terms(TOPN):
                     keep = False
             if keep:
                 courses.append(course)
+                course_names[course["id"]] = course["name"]
 
 extract = {}
 index = [["course_id","id", "name", "url", "type","content", "created_at","updated_at", "available", "inbound_links"]]
@@ -146,9 +148,13 @@ for row in index:
             row[i] = str(value)
 
 # Write index to file
-with open("data/index.csv", "w", encoding="utf-8") as f:
-    writer = csv.writer(f, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL, newline='')
+with open("data/index.csv", "w", encoding="utf-8", newline='') as f:
+    writer = csv.writer(f, delimiter=",", quotechar='"', quoting=csv.QUOTE_ALL)
     writer.writerows(index)
+
+# Write course names to file. Including in-line with grow the file more than necessary.
+with open("data/course_names.json", "w", encoding="utf-8") as f:
+    json.dump(course_names, f, indent=4, sort_keys=True)
 
 # Write extract to JSON file for later use (may be large)
 with open("data/extract.json", "w", encoding="utf-8") as f:
